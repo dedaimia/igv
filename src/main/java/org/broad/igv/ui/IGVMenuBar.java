@@ -1032,7 +1032,9 @@ public class IGVMenuBar extends JMenuBar implements IGVEventObserver {
         final OAuthProvider oauth = OAuthUtils.getInstance().getProvider();
 
         if (oauth != null) {  // TODO -- how do we know this is a google provider?
-            oauth.setAuthProvider("Google");
+            if(oauth.getAuthProvider() == null || oauth.getAuthProvider().isEmpty()){
+                oauth.setAuthProvider("Google");
+            }
             JMenu menu = new JMenu(oauth.getAuthProvider());
 
             final JMenuItem login = new JMenuItem("Login ... ");

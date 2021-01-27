@@ -35,6 +35,7 @@ import org.broad.igv.Globals;
 import org.broad.igv.exceptions.HttpResponseException;
 import org.broad.igv.google.GoogleUtils;
 import org.broad.igv.google.OAuthUtils;
+import org.broad.igv.google.OAuthProvider;
 import org.broad.igv.prefs.IGVPreferences;
 import org.broad.igv.prefs.PreferencesManager;
 import org.broad.igv.ui.IGV;
@@ -733,10 +734,15 @@ public class HttpUtils {
 
         }
 
-        // if the url points to a openid location instead of a oauth2.0 location, used the fina and replace
+        // if the url points to a openid location instead of a oauth2.0 location, used the find and replace
         // string to dynamically map url - dwm08
+        OAuthProvider oauthProvider = OAuthUtils.getInstance().getProvider();
         if (url.getHost().equals(GoogleUtils.GOOGLE_API_HOST) && OAuthUtils.findString != null && OAuthUtils.replaceString != null) {
             url = HttpUtils.createURL(url.toExternalForm().replaceFirst(OAuthUtils.findString, OAuthUtils.replaceString));
+        }
+        // Also support find and replace for other non-google oauth providers
+        else if(oauthProvider != null && oauthProvider.appliesToUrl(url) && oauthProvider.findString != null){
+            url = HttpUtils.createURL(url.toExternalForm().replaceFirst(oauthProvider.findString, oauthProvider.replaceString));
         }
 
         //Encode query string portions
@@ -833,9 +839,9 @@ public class HttpUtils {
 
         conn.setRequestProperty("User-Agent", Globals.applicationString());
 
-        // If this is a Google URL and we have an access token use it.
-        if (GoogleUtils.isGoogleURL(url.toExternalForm())) {
-            String token = OAuthUtils.getInstance().getProvider().getAccessToken();
+        // If this a google url (or other url covered by custom oauth provider) and we have an access token use it.
+        if (oauthProvider != null && oauthProvider.appliesToUrl(url)) {
+            String token = oauthProvider.getAccessToken();
             if (token != null) {
                 conn.setRequestProperty("Authorization", "Bearer " + token);
             }

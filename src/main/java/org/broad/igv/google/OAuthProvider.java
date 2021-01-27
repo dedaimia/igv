@@ -1,6 +1,7 @@
 package org.broad.igv.google;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import org.apache.log4j.Logger;
@@ -18,6 +19,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -32,8 +34,8 @@ public class OAuthProvider {
 
     private String authProvider = "";
     private String appIdURI = null;
-    public static String findString = null;
-    public static String replaceString = null;
+    public  String findString = null;
+    public  String replaceString = null;
 
 
     private static final String REFRESH_TOKEN_KEY = "oauth_refresh_token";
@@ -50,6 +52,7 @@ public class OAuthProvider {
     private String refreshToken;
     private long expirationTime; // in milliseconds
     private String scope;
+    private String[] hosts;
     private String currentUserName;
     private String currentUserID;
     private String currentUserEmail;
@@ -81,8 +84,16 @@ public class OAuthProvider {
         clientSecret = obj.has("client_secret") ? obj.get("client_secret").getAsString() : null;
         setAuthProvider(obj.has("auth_provider") ? obj.get("auth_provider").getAsString() : authProvider);
         appIdURI = obj.has("app_id_uri") ? obj.get("app_id_uri").getAsString() : null;
+        findString = obj.has("find_string") ?  obj.get("find_string").getAsString() : null;
+        replaceString = obj.has("replace_string") ?  obj.get("replace_string").getAsString() : null;
         if (obj.has("scope")) {
             scope = obj.get("scope").getAsString();
+        }
+        if (obj.has("hosts")) {
+            JsonArray hostsArrJson = obj.getAsJsonArray("hosts");
+            hosts = new String[hostsArrJson.size()];
+            for(int i = 0; i < hostsArrJson.size(); i++)
+               hosts[i] = hostsArrJson.get(i).getAsString();
         }
 
         // Special Google properties
@@ -485,12 +496,49 @@ public class OAuthProvider {
         Set<String> urlSet = findUrlsInSessionFile(sessionPath);
         if (urlSet.size() > 0) {
             for (String url : urlSet) {
-                if (GoogleUtils.isGoogleCloud(url)) {
+                if (this.appliesToUrl(url)) {
                     doSecureLogin();
                     // user is logged in. Can proceed with the load
                     return;
                 }
             }
+        }
+    }
+
+    /**
+     * Does this ouath provider apply (should it's access token be used) for the url provided
+     * @param url
+     * @return
+     */
+    public boolean appliesToUrl(URL url){
+        // If this provider has a list of hosts, use them to check the url
+        if(this.hosts != null && this.hosts.length > 0){
+            for (String host: hosts){
+                 if(url.getHost() != null && url.getHost().equals(host)){
+                     return true;
+                 }
+            }
+            return false;
+        }
+        // Otherwise assume it's a google provider and check if this is a google url
+        else{
+            return GoogleUtils.isGoogleCloud(url.toExternalForm());
+        }
+
+    }
+
+    /**
+     * Does this ouath provider apply (should it's access token be used) for the url string
+     * @param urlString
+     * @return
+     */
+    public boolean appliesToUrl(String urlString){
+        try {
+            URL url = new URL(urlString);
+            return this.appliesToUrl(url);
+        }
+        catch(MalformedURLException ex){
+            return false;
         }
     }
 
