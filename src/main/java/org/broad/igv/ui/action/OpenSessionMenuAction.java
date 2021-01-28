@@ -30,6 +30,8 @@
 package org.broad.igv.ui.action;
 
 import org.apache.log4j.Logger;
+import org.broad.igv.google.OAuthProvider;
+import org.broad.igv.google.OAuthUtils;
 import org.broad.igv.prefs.PreferencesManager;
 import org.broad.igv.ui.IGV;
 import org.broad.igv.ui.UIConstants;
@@ -92,6 +94,12 @@ public class OpenSessionMenuAction extends MenuAction {
                 mainFrame.doRestoreSession(sessionFile, null, merge);
             } else {
                 File f = new File(sessionFile);
+                // check if we need an oauth token for any urls in the file, and, if needed,
+                // perform oauth login.   This currently will only work with local session files
+                OAuthProvider authProvider = OAuthUtils.getInstance().getProvider();
+                if(authProvider != null){
+                    authProvider.checkServerLogin(sessionFile);
+                }
                 mainFrame.doRestoreSession(f, null);
             }
         }
