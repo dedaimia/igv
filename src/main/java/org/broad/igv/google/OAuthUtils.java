@@ -73,6 +73,10 @@ public class OAuthUtils {
         return theInstance;
     }
 
+    public static synchronized OAuthUtils getInstanceNoCreate() {
+        return theInstance;
+    }
+
     public OAuthProvider getProvider(String providerName) {
         if (providerName != null) {
             if (!providers.containsKey(providerName)) {
@@ -105,7 +109,7 @@ public class OAuthUtils {
         }
 
         // Local config takes precendence
-        String oauthConfig = DirectoryManager.getIgvDirectory() + "/oauth-config.json";
+        String oauthConfig = DirectoryManager.getIgvDirectory() + "/oauth-config-2.8.13.MAYO.json";
         if ((new File(oauthConfig)).exists()) {
             try {
                 log.debug("Loading Oauth properties from: " + oauthConfig);
