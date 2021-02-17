@@ -1,5 +1,6 @@
 package org.broad.igv.google;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
@@ -90,10 +91,18 @@ public class OAuthProvider {
             scope = obj.get("scope").getAsString();
         }
         if (obj.has("hosts")) {
-            JsonArray hostsArrJson = obj.getAsJsonArray("hosts");
-            hosts = new String[hostsArrJson.size()];
-            for(int i = 0; i < hostsArrJson.size(); i++)
-               hosts[i] = hostsArrJson.get(i).getAsString();
+            // hosts element may be an array or a single string - put in hosts array either way
+            JsonElement hostsElement = obj.get("hosts");
+            if (hostsElement.isJsonArray()) {
+                JsonArray hostsArrJson = hostsElement.getAsJsonArray();
+                hosts = new String[hostsArrJson.size()];
+                for (int i = 0; i < hostsArrJson.size(); i++)
+                    hosts[i] = hostsArrJson.get(i).getAsString();
+            }
+            else{
+                hosts = new String[1];
+                hosts[0] = hostsElement.getAsString();
+            }
         }
 
         // Special Google properties
